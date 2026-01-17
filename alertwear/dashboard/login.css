@@ -1,0 +1,81 @@
+.login-card {
+    background: white;
+    padding: 2.5rem;
+    border-radius: 2%;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 350px;
+    text-align: center;
+}
+
+.login-card h2 {
+    margin: 0 0 10px 0;
+    color: rgb(51, 51, 51);
+}
+
+.login-card p {
+    color: rgb(102, 102, 102);
+    margin-bottom: 2rem;
+    font-size: 0.9rem;
+}
+
+.form-group {
+    margin-bottom: 1.2rem;
+    text-align: left;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-size: 0.85rem;
+    color: #555;
+    font-weight: 600;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid rgb(221, 221, 221);
+    border-radius: 2px;
+    font-size: 1rem;
+    box-sizing: border-box; 
+    transition: border 0.3s;
+}
+
+.form-group input:focus {
+    border-color:rgb(45, 138, 226);
+    outline: none;
+}
+
+.login-btn {
+    width: 100%;
+    padding: 12px;
+    background-color: rgb(93, 226, 45);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 1rem;
+    transition: all ease 0,3s;
+}
+
+.login-btn:hover {
+    background-color: white;
+    color:  rgb(93, 226, 45);
+    border-style: solid;
+    border-color: rgb(89, 216, 42);
+}
+
+.login-btn:active{
+    background-color: rgb(93, 226, 45);
+    color: white;
+}
+
+.error-msg {
+    color: rgb(217, 83, 79);
+    font-size: 0.9rem;
+    margin-top: 1rem;
+    min-height: 1.2em; 
+}
