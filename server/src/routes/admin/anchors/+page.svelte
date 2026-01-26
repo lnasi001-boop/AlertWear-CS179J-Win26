@@ -93,7 +93,7 @@
 </script>
 
 <svelte:head>
-    <title>Anchors - Admin - AlertWear</title>
+    <title>Anchors - Admin - VERTEX</title>
 </svelte:head>
 
 <div class="page">

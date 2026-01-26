@@ -10,8 +10,7 @@
     <div class="app">
         <nav class="navbar">
             <div class="nav-brand">
-                <span class="logo">🔒</span>
-                <span class="brand-name">AlertWear</span>
+                <img src="/logo.png" alt="VERTEX" class="logo" />
             </div>
             
             <div class="nav-links">
@@ -71,16 +70,11 @@
     .nav-brand {
         display: flex;
         align-items: center;
-        gap: 10px;
     }
 
     .logo {
-        font-size: 24px;
-    }
-
-    .brand-name {
-        font-size: 20px;
-        font-weight: bold;
+        height: 59px;
+        width: auto;
     }
 
     .nav-links {

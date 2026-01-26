@@ -90,7 +90,7 @@
 </script>
 
 <svelte:head>
-    <title>Workers - Admin - AlertWear</title>
+    <title>Workers - Admin - VERTEX</title>
 </svelte:head>
 
 <div class="page">

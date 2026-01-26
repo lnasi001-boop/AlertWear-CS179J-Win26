@@ -33,14 +33,13 @@
 </script>
 
 <svelte:head>
-    <title>Login - AlertWear</title>
+    <title>Login - VERTEX</title>
 </svelte:head>
 
 <div class="login-page">
     <div class="login-card">
-        <div class="logo">
-            <span class="logo-icon">🔒</span>
-            <h1>AlertWear</h1>
+        <div class="logo-container">
+            <img src="/logo.png" alt="VERTEX" class="logo" />
         </div>
 
         <p class="subtitle">Sign in to access the dashboard</p>
@@ -100,26 +99,19 @@
         padding: 40px;
         border-radius: 16px;
         width: 100%;
-        max-width: 400px;
+        max-width: 420px;
         box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
     }
 
-    .logo {
+    .logo-container {
         display: flex;
-        align-items: center;
         justify-content: center;
-        gap: 12px;
-        margin-bottom: 8px;
+        margin-bottom: 16px;
     }
 
-    .logo-icon {
-        font-size: 36px;
-    }
-
-    .logo h1 {
-        margin: 0;
-        font-size: 28px;
-        color: #1e293b;
+    .logo {
+        height: 150px;
+        width: auto;
     }
 
     .subtitle {

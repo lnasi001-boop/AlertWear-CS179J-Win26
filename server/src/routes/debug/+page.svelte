@@ -15,7 +15,7 @@
 </script>
 
 <svelte:head>
-    <title>Debug Console - AlertWear</title>
+    <title>Debug Console - VERTEX</title>
 </svelte:head>
 
 <div class="container">

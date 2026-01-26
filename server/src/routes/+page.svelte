@@ -40,7 +40,7 @@
 </script>
 
 <svelte:head>
-    <title>Dashboard - AlertWear</title>
+    <title>Dashboard - VERTEX</title>
 </svelte:head>
 
 {#if hasAlert}
