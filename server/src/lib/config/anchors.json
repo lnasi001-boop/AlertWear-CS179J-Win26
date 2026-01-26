@@ -1,0 +1,26 @@
+[
+    {
+        "anchorId": "A1",
+        "name": "North Corner",
+        "x": 0,
+        "y": 0
+    },
+    {
+        "anchorId": "A2",
+        "name": "East Corner",
+        "x": 10,
+        "y": 0
+    },
+    {
+        "anchorId": "A3",
+        "name": "South Corner",
+        "x": 10,
+        "y": 10
+    },
+    {
+        "anchorId": "A4",
+        "name": "West Corner",
+        "x": 0,
+        "y": 10
+    }
+]

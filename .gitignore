@@ -1,0 +1,36 @@
+# Node
+node_modules/
+
+# SvelteKit
+.svelte-kit/
+build/
+.env
+.env.*
+
+# Mosquitto Docker
+mqtt/data/
+mqtt/log/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Python (for firmware if you use it)
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Firmware build artifacts (ESP-IDF)
+firmware/build/
+firmware/sdkconfig.old
+
+# Lock files (optional - some teams commit these, some don't)
+# package-lock.json
+
+# Local testing
+*.local
