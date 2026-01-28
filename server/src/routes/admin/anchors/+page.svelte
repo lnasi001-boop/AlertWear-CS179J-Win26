@@ -6,6 +6,8 @@
         name: string;
         x: number;
         y: number;
+        online?: boolean;
+        lastSeen?: string;
     }
 
     let anchors: Anchor[] = [];
@@ -21,13 +23,46 @@
 
     onMount(async () => {
         await loadAnchors();
+        // Refresh status every 2 seconds
+        const interval = setInterval(async () => {
+            await loadAnchors();
+        }, 2000);
+        return () => clearInterval(interval);
     });
 
     async function loadAnchors() {
-        loading = true;
+        const wasLoading = loading;
+        if (wasLoading) loading = true;
+        
         const res = await fetch('/api/anchors');
-        anchors = await res.json();
+        const data = await res.json();
+        
+        // Try to get live status
+        try {
+            const statusRes = await fetch('/api/anchors/status');
+            if (statusRes.ok) {
+                const statusData = await statusRes.json();
+                const statusMap = new Map(statusData.map((a: Anchor) => [a.anchorId, a]));
+                anchors = data.map((a: Anchor) => ({
+                    ...a,
+                    online: statusMap.get(a.anchorId)?.online ?? false,
+                    lastSeen: statusMap.get(a.anchorId)?.lastSeen
+                }));
+            } else {
+                anchors = data;
+            }
+        } catch {
+            anchors = data;
+        }
+        
         loading = false;
+    }
+
+    function getAnchorStatus(anchor: Anchor): { status: string; color: string } {
+        if (anchor.online) {
+            return { status: 'Online', color: 'green' };
+        }
+        return { status: 'Offline', color: 'gray' };
     }
 
     function openAddModal() {
@@ -118,16 +153,24 @@
                         <th>Name</th>
                         <th>X Position (m)</th>
                         <th>Y Position (m)</th>
+                        <th>Status</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     {#each anchors as anchor (anchor.anchorId)}
+                        {@const status = getAnchorStatus(anchor)}
                         <tr>
                             <td><span class="anchor-badge">{anchor.anchorId}</span></td>
                             <td>{anchor.name}</td>
-                            <td>{anchor.x}</td>
-                            <td>{anchor.y}</td>
+                            <td>{anchor.x} m</td>
+                            <td>{anchor.y} m</td>
+                            <td>
+                                <span class="status-badge {status.color}">
+                                    <span class="status-dot"></span>
+                                    {status.status}
+                                </span>
+                            </td>
                             <td class="actions">
                                 <button class="btn-edit" on:click={() => openEditModal(anchor)}>
                                     Edit
@@ -139,7 +182,7 @@
                         </tr>
                     {:else}
                         <tr>
-                            <td colspan="5" class="empty">No anchors configured</td>
+                            <td colspan="6" class="empty">No anchors configured</td>
                         </tr>
                     {/each}
                 </tbody>
@@ -284,7 +327,7 @@
     }
 
     th, td {
-        padding: 12px 16px;
+        padding: 16px 20px;
         text-align: left;
         border-bottom: 1px solid #e2e8f0;
     }
@@ -294,20 +337,47 @@
         font-weight: 600;
         color: #475569;
         font-size: 13px;
-        text-transform: uppercase;
     }
 
     td {
         color: #1e293b;
+        font-size: 15px;
     }
 
     .anchor-badge {
         background: #3b82f6;
         color: white;
-        padding: 4px 12px;
+        padding: 6px 16px;
         border-radius: 4px;
-        font-size: 13px;
+        font-size: 14px;
         font-weight: 600;
+    }
+
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 13px;
+        font-weight: 500;
+    }
+
+    .status-badge.green {
+        background: #dcfce7;
+        color: #16a34a;
+    }
+
+    .status-badge.gray {
+        background: #f1f5f9;
+        color: #64748b;
+    }
+
+    .status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: currentColor;
     }
 
     .actions {

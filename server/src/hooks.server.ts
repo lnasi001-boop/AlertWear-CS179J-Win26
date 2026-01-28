@@ -5,10 +5,18 @@ import { connectMQTT } from '$lib/server/mqtt';
 connectMQTT();
 console.log('🚀 Server hooks initialized');
 
+// Set to false to disable login requirement (for development)
+const REQUIRE_LOGIN = true;
+
 // Protected routes that require authentication
 const protectedRoutes = ['/', '/admin', '/debug'];
 
 export async function handle({ event, resolve }) {
+    // Skip auth check if login is disabled
+    if (!REQUIRE_LOGIN) {
+        return resolve(event);
+    }
+
     const session = event.cookies.get('session');
     const isLoggedIn = session === 'authenticated';
     const path = event.url.pathname;

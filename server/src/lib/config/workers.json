@@ -1,15 +1,5 @@
 [
     {
-        "tagId": 1,
-        "fullName": "John Smith",
-        "empId": "EMP-001"
-    },
-    {
-        "tagId": 2,
-        "fullName": "Maria Garcia",
-        "empId": "EMP-002"
-    },
-    {
         "tagId": 3,
         "fullName": "Bob Wilson",
         "empId": "EMP-003"
@@ -18,5 +8,15 @@
         "tagId": 4,
         "fullName": "Alex Chen",
         "empId": "EMP-004"
+    },
+    {
+        "tagId": 2,
+        "fullName": "Maria Garcia",
+        "empId": "EMP-002"
+    },
+    {
+        "tagId": 1,
+        "fullName": "John Smith",
+        "empId": "EMP-001"
     }
 ]

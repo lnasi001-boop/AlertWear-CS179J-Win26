@@ -1,5 +1,6 @@
 <script lang="ts">
     import { onMount } from 'svelte';
+    import { invalidateAll } from '$app/navigation';
 
     interface Worker {
         tagId: number;
@@ -7,7 +8,13 @@
         empId: string;
     }
 
+    interface WorkerPosition {
+        tagId: number;
+        status: 'ok' | 'warning' | 'alert';
+    }
+
     let workers: Worker[] = [];
+    let activeWorkers: Map<number, WorkerPosition> = new Map();
     let loading = true;
     let showModal = false;
     let editingWorker: Worker | null = null;
@@ -19,13 +26,43 @@
 
     onMount(async () => {
         await loadWorkers();
+        // Refresh active status every 2 seconds
+        const interval = setInterval(async () => {
+            await loadActiveStatus();
+        }, 2000);
+        return () => clearInterval(interval);
     });
 
     async function loadWorkers() {
         loading = true;
         const res = await fetch('/api/workers');
         workers = await res.json();
+        await loadActiveStatus();
         loading = false;
+    }
+
+    async function loadActiveStatus() {
+        try {
+            const res = await fetch('/api/workers/status');
+            if (res.ok) {
+                const positions = await res.json();
+                activeWorkers = new Map(positions.map((p: WorkerPosition) => [p.tagId, p]));
+            }
+        } catch (e) {
+            // Status endpoint might not exist yet
+        }
+    }
+
+    function getWorkerStatus(tagId: number): { status: string; color: string } {
+        const position = activeWorkers.get(tagId);
+        if (!position) {
+            return { status: 'Pending', color: 'orange' };
+        }
+        return { status: 'Active', color: 'green' };
+    }
+
+    function isUnassigned(worker: Worker): boolean {
+        return !worker.fullName || worker.fullName === 'Unassigned';
     }
 
     function openAddModal() {
@@ -44,6 +81,14 @@
         showModal = true;
     }
 
+    function openAssignModal(worker: Worker) {
+        editingWorker = worker;
+        formTagId = worker.tagId;
+        formFullName = '';
+        formEmpId = '';
+        showModal = true;
+    }
+
     function closeModal() {
         showModal = false;
         editingWorker = null;
@@ -57,14 +102,12 @@
         };
 
         if (editingWorker) {
-            // Update existing
             await fetch('/api/workers', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(workerData)
             });
         } else {
-            // Add new
             await fetch('/api/workers', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -96,8 +139,8 @@
 <div class="page">
     <div class="header">
         <div>
-            <h1>Worker Management</h1>
-            <p>Assign Tag IDs to workers</p>
+            <h1>Worker ↔ Tag Assignment</h1>
+            <p>Assign hardcoded Tag IDs to workers</p>
         </div>
         <button class="btn-primary" on:click={openAddModal}>
             + Add Worker
@@ -114,27 +157,46 @@
                         <th>Tag ID</th>
                         <th>Full Name</th>
                         <th>Employee ID</th>
+                        <th>Status</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     {#each workers as worker (worker.tagId)}
-                        <tr>
-                            <td><span class="tag-badge">{worker.tagId}</span></td>
-                            <td>{worker.fullName}</td>
-                            <td>{worker.empId}</td>
+                        {@const status = getWorkerStatus(worker.tagId)}
+                        {@const unassigned = isUnassigned(worker)}
+                        <tr class:unassigned={unassigned}>
+                            <td>
+                                <span class="tag-badge" class:pending={unassigned}>{worker.tagId}</span>
+                            </td>
+                            <td class:unassigned-text={unassigned}>
+                                {unassigned ? 'Unassigned' : worker.fullName}
+                            </td>
+                            <td>{unassigned ? '—' : worker.empId}</td>
+                            <td>
+                                <span class="status-badge {status.color}">
+                                    <span class="status-dot"></span>
+                                    {status.status}
+                                </span>
+                            </td>
                             <td class="actions">
-                                <button class="btn-edit" on:click={() => openEditModal(worker)}>
-                                    Edit
-                                </button>
-                                <button class="btn-delete" on:click={() => deleteWorker(worker.tagId)}>
-                                    Delete
-                                </button>
+                                {#if unassigned}
+                                    <button class="btn-assign" on:click={() => openAssignModal(worker)}>
+                                        Assign
+                                    </button>
+                                {:else}
+                                    <button class="btn-edit" on:click={() => openEditModal(worker)}>
+                                        Edit
+                                    </button>
+                                    <button class="btn-delete" on:click={() => deleteWorker(worker.tagId)}>
+                                        Delete
+                                    </button>
+                                {/if}
                             </td>
                         </tr>
                     {:else}
                         <tr>
-                            <td colspan="4" class="empty">No workers configured</td>
+                            <td colspan="5" class="empty">No workers configured</td>
                         </tr>
                     {/each}
                 </tbody>
@@ -146,7 +208,7 @@
 {#if showModal}
     <div class="modal-overlay" on:click={closeModal}>
         <div class="modal" on:click|stopPropagation>
-            <h2>{editingWorker ? 'Edit Worker' : 'Add Worker'}</h2>
+            <h2>{editingWorker ? (isUnassigned(editingWorker) ? 'Assign Worker' : 'Edit Worker') : 'Add Worker'}</h2>
             
             <div class="form-group">
                 <label for="tagId">Tag ID</label>
@@ -182,7 +244,7 @@
             <div class="modal-actions">
                 <button class="btn-secondary" on:click={closeModal}>Cancel</button>
                 <button class="btn-primary" on:click={saveWorker}>
-                    {editingWorker ? 'Update' : 'Add'} Worker
+                    {editingWorker ? (isUnassigned(editingWorker) ? 'Assign' : 'Update') : 'Add'} Worker
                 </button>
             </div>
         </div>
@@ -263,7 +325,7 @@
     }
 
     th, td {
-        padding: 12px 16px;
+        padding: 16px 20px;
         text-align: left;
         border-bottom: 1px solid #e2e8f0;
     }
@@ -273,20 +335,68 @@
         font-weight: 600;
         color: #475569;
         font-size: 13px;
-        text-transform: uppercase;
     }
 
     td {
         color: #1e293b;
+        font-size: 15px;
+    }
+
+    tr.unassigned {
+        background: #fefce8;
+        border: 2px dashed #fbbf24;
     }
 
     .tag-badge {
         background: #3b82f6;
         color: white;
+        padding: 6px 16px;
+        border-radius: 20px;
+        font-size: 14px;
+        font-weight: 600;
+        display: inline-block;
+    }
+
+    .tag-badge.pending {
+        background: #fbbf24;
+        color: #78350f;
+    }
+
+    .unassigned-text {
+        color: #d97706;
+        font-style: italic;
+    }
+
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
         padding: 4px 12px;
         border-radius: 20px;
         font-size: 13px;
-        font-weight: 600;
+        font-weight: 500;
+    }
+
+    .status-badge.green {
+        background: #dcfce7;
+        color: #16a34a;
+    }
+
+    .status-badge.orange {
+        background: #fef3c7;
+        color: #d97706;
+    }
+
+    .status-badge.red {
+        background: #fee2e2;
+        color: #dc2626;
+    }
+
+    .status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: currentColor;
     }
 
     .actions {
@@ -320,6 +430,21 @@
 
     .btn-delete:hover {
         background: #fef2f2;
+    }
+
+    .btn-assign {
+        background: #3b82f6;
+        border: none;
+        color: white;
+        padding: 6px 16px;
+        border-radius: 4px;
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+    }
+
+    .btn-assign:hover {
+        background: #2563eb;
     }
 
     .empty {
