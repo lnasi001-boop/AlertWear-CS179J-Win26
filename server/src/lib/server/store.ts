@@ -79,7 +79,7 @@ function trilaterate(readings: Map<string, RangeReading>): { x: number; y: numbe
     const points: { x: number; y: number; d: number }[] = [];
     
     readings.forEach((reading, anchorId) => {
-        const anchor = anchors.find(a => a.anchorId === anchorId);
+        const anchor = anchors.find(a => a.anchorId === String(anchorId));
         if (anchor) {
             points.push({ x: anchor.x, y: anchor.y, d: reading.distance });
         }
@@ -138,7 +138,7 @@ export function processReading(data: {
     }
 
     // Update anchor status
-    const anchor = anchors.find(a => a.anchorId === anchorId);
+   const anchor = anchors.find(a => a.anchorId === String(anchorId));
     if (anchor) {
         anchor.online = true;
         anchor.lastSeen = timestamp;
