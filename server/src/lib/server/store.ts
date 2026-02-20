@@ -105,8 +105,8 @@ function trilaterate(readings: Map<string, RangeReading>): { x: number; y: numbe
 
     // Clamp to valid range (0-10m)
     return {
-        x: Math.max(0, Math.min(3, x)),
-        y: Math.max(0, Math.min(3, y))
+        x: Math.max(0, Math.min(7.5, x)),
+        y: Math.max(0, Math.min(7.5, y))
     };
 }
 

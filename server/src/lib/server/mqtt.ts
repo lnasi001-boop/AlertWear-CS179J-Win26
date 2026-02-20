@@ -10,7 +10,7 @@ let client: mqtt.MqttClient | null = null;
 export function connectMQTT() {
     if (client) return client;
 
-    client = mqtt.connect('mqtt://localhost:1883');
+    client = mqtt.connect('mqtt://172.20.10.2:1883'); //changed localhost to IP (Mari)
 
     client.on('connect', () => {
         console.log('✅ Connected to MQTT broker');

@@ -16,11 +16,11 @@
 
 // ============== USER CONFIG - EDIT THESE! ==============
 // WiFi Settings
-const char* WIFI_SSID = "SpectrumLN";
-const char* WIFI_PASSWORD = "Riverside@22";
+const char* WIFI_SSID = "iPhone";
+const char* WIFI_PASSWORD = "cooldawg";
 
 // MQTT Settings (your VERTEX server)
-const char* MQTT_SERVER = "192.168.1.4";
+const char* MQTT_SERVER = "172.20.10.2";
 const int MQTT_PORT = 1883;
 const char* MQTT_USER = "";
 const char* MQTT_PASSWORD = "";
@@ -160,6 +160,7 @@ void reconnectMQTT() {
     
     String clientId = "vertex-anchor-";
     clientId += ANCHOR_ID;
+    clientId += WiFi.macAddress();      // Added
     
     bool connected;
     if (strlen(MQTT_USER) > 0) {
@@ -171,15 +172,17 @@ void reconnectMQTT() {
     if (connected) {
         mqttConnected = true;
         SERIAL_LOG.println("connected!");
-        
         String topic = "uwb/anchor/";
         topic += ANCHOR_ID;
         topic += "/status";
         mqttClient.publish(topic.c_str(), "online", true);
+
+        updateDisplay("Ready", "Waiting for tags...");
     } else {
         mqttConnected = false;
         SERIAL_LOG.print("failed, rc=");
         SERIAL_LOG.println(mqttClient.state());
+        updateDisplay("MQTT Failed", "Retrying...");
     }
 }
 
@@ -220,20 +223,49 @@ void parseAndPublish(String data) {
     int tidEnd = data.indexOf(",", tidIdx);
     int tagId = data.substring(tidIdx + 4, tidEnd).toInt();
     
-    // Extract range value - first number in range:(X,0,0,...)
+    // Extract range value for this ANCHOR_ID
     int rangeIdx = data.indexOf("range:(");
-    if (rangeIdx < 0) return;
-    int rangeStart = rangeIdx + 7;
-    int rangeEnd = data.indexOf(",", rangeStart);
-    int distanceCm = data.substring(rangeStart, rangeEnd).toInt();
+    int ancIdx = data.indexOf("ancid:(");
+    if (rangeIdx < 0 || ancIdx < 0) return;
     
-    // Convert cm to meters
-    float distanceM = distanceCm / 100.0;
+    int rangeStart = rangeIdx + 7;
+    int rangeEnd = data.indexOf(")", rangeStart);
+    int ancStart = ancIdx + 7;
+    int ancEnd = data.indexOf(")", ancStart);
+    if (rangeEnd < 0 || ancEnd < 0) return;
+    
+    String rangeList = data.substring(rangeStart, rangeEnd);
+    String ancList = data.substring(ancStart, ancEnd);
+    
+    int distanceCm = 0;
+    int rPos = 0;
+    int aPos = 0;
+    for (int i = 0; i < 8; i++) {
+        int rComma = rangeList.indexOf(",", rPos);
+        int aComma = ancList.indexOf(",", aPos);
+        
+        String rPart = (rComma == -1) ? rangeList.substring(rPos) : rangeList.substring(rPos, rComma);
+        String aPart = (aComma == -1) ? ancList.substring(aPos) : ancList.substring(aPos, aComma);
+        
+        if (aPart.toInt() == ANCHOR_ID) {
+            distanceCm = rPart.toInt();
+            break;
+        }
+        
+        if (rComma == -1 || aComma == -1) break;
+        rPos = rComma + 1;
+        aPos = aComma + 1;
+    }
+    
+    
     
     // Only publish valid readings
     if (distanceCm > 0) {
+        float distanceM = (distanceCm / 100.0) - 0.5;    
+        if(distanceM < 0) distanceM = 0;
         publishDistance(tagId, distanceM, 0);
-        
+
+
         // Update display
         String displayData = "T";
         displayData += tagId;
