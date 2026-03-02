@@ -1,92 +1,123 @@
 const mqtt = require('mqtt');
 
 // Connect to MQTT broker
-const client = mqtt.connect('mqtt://localhost:1883');
+client = mqtt.connect('mqtt://localhost:1883');
 
-// Simulated worker data (matches your config)
+// Anchors (match anchors.json)
+const anchors = [
+    { anchorId: 0, x: 0, y: 0 },
+    { anchorId: 1, x: 7.5, y: 0 },
+    { anchorId: 2, x: 7.5, y: 7.5 },
+    { anchorId: 3, x: 0, y: 7.5 }
+];
+
+// Workers (match workers.json)
 const workers = [
+    { tagId: 0, fullName: 'Test Worker', empId: 'EMP-000' },
     { tagId: 1, fullName: 'John Smith', empId: 'EMP-001' },
     { tagId: 2, fullName: 'Maria Garcia', empId: 'EMP-002' },
     { tagId: 3, fullName: 'Bob Wilson', empId: 'EMP-003' },
     { tagId: 4, fullName: 'Alex Chen', empId: 'EMP-004' }
 ];
 
-// Simulated anchor positions (corners of a 10m x 10m area)
-const anchors = [
-    { anchorId: 'A1', x: 0, y: 0 },
-    { anchorId: 'A2', x: 10, y: 0 },
-    { anchorId: 'A3', x: 10, y: 10 },
-    { anchorId: 'A4', x: 0, y: 10 }
-];
+// Simulated tag positions (will drift randomly)
+const tagPositions = {
+    0: { x: 2, y: 3 },
+    1: { x: 5, y: 2 },
+    2: { x: 6, y: 5 },
+    3: { x: 1, y: 6 },
+    4: { x: 4, y: 4 }
+};
 
-// Simulate tag positions (will move randomly)
-const tagPositions = [
-    { x: 3, y: 4 },
-    { x: 7, y: 3 },
-    { x: 5, y: 7 },
-    { x: 8, y: 8 }
-];
-
-// Calculate distance between two points
+// Calculate distance between two points with slight noise
 function getDistance(x1, y1, x2, y2) {
-    return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
-}
-
-// Generate random gas reading (normal: 5-20, warning: 50-70, alert: 80-100)
-function getGasReading(tagId) {
-    // Tag 4 (Alex Chen) will occasionally have high gas readings
-    if (tagId === 4 && Math.random() < 0.3) {
-        return Math.floor(Math.random() * 20) + 80; // 80-100 ppm (ALERT)
-    }
-    return Math.floor(Math.random() * 15) + 5; // 5-20 ppm (normal)
+    const real = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+    const noise = (Math.random() - 0.5) * 0.2; // ±0.1m noise
+    return Math.max(0.1, real + noise);
 }
 
 // Move tags slightly (simulate walking)
 function moveTags() {
-    tagPositions.forEach((pos) => {
-        pos.x += (Math.random() - 0.5) * 0.5; // Move ±0.25m
-        pos.y += (Math.random() - 0.5) * 0.5;
-        // Keep within bounds
-        pos.x = Math.max(0.5, Math.min(9.5, pos.x));
-        pos.y = Math.max(0.5, Math.min(9.5, pos.y));
-    });
+    for (const tagId in tagPositions) {
+        const pos = tagPositions[tagId];
+        pos.x += (Math.random() - 0.5) * 0.3;
+        pos.y += (Math.random() - 0.5) * 0.3;
+        pos.x = Math.max(0.5, Math.min(7.0, pos.x));
+        pos.y = Math.max(0.5, Math.min(7.0, pos.y));
+    }
+}
+
+// Generate gas sensor readings
+function getGasReading(tagId) {
+    // Tag 4 (Alex Chen) occasionally has dangerous gas levels
+    if (tagId === 4 && Math.random() < 0.3) {
+        return {
+            temperature: 28 + Math.random() * 5,
+            humidity: 60 + Math.random() * 20,
+            pressure: 1010 + Math.random() * 10,
+            gas: 80 + Math.random() * 40  // high gas resistance = alert
+        };
+    }
+    return {
+        temperature: 22 + Math.random() * 4,
+        humidity: 40 + Math.random() * 15,
+        pressure: 1012 + Math.random() * 5,
+        gas: 5 + Math.random() * 15  // normal range
+    };
 }
 
 client.on('connect', () => {
-    console.log('✅ Mock anchor connected to MQTT broker');
-    console.log('📡 Publishing simulated UWB data every 1 second...\n');
+    console.log('✅ Mock VERTEX connected to MQTT broker');
+    console.log('📡 Publishing simulated data every 600ms...\n');
 
-    // Publish data every second
+    // Publish anchor status
+    anchors.forEach(a => {
+        client.publish(`uwb/anchor/${a.anchorId}/status`, 'online', { retain: true });
+    });
+
+    // Publish distance data every 600ms (matches real system rate)
     setInterval(() => {
         moveTags();
 
-        workers.forEach((worker, index) => {
-            const tagPos = tagPositions[index];
-            const gas = getGasReading(worker.tagId);
+        workers.forEach(worker => {
+            const pos = tagPositions[worker.tagId];
 
-            // Each anchor "sees" this tag and reports distance
-            anchors.forEach((anchor) => {
-                const distance = getDistance(tagPos.x, tagPos.y, anchor.x, anchor.y);
+            anchors.forEach(anchor => {
+                const distance = getDistance(pos.x, pos.y, anchor.x, anchor.y);
 
                 const payload = {
                     tagId: worker.tagId,
-                    fullName: worker.fullName,
-                    empId: worker.empId,
                     distance: parseFloat(distance.toFixed(2)),
-                    gas: gas,
+                    rssi: 0,
                     anchorId: anchor.anchorId,
                     anchorX: anchor.x,
                     anchorY: anchor.y,
-                    timestamp: new Date().toISOString()
+                    timestamp: Date.now()
                 };
 
-                const topic = `uwb/${anchor.anchorId}/data`;
-                client.publish(topic, JSON.stringify(payload));
+                client.publish(`uwb/anchor/${anchor.anchorId}`, JSON.stringify(payload));
             });
         });
+    }, 600);
 
-        console.log(`📨 Published data for ${workers.length} tags from ${anchors.length} anchors`);
-    }, 1000);
+    // Publish gas data every 5 seconds (matches BME680 read interval)
+    setInterval(() => {
+        workers.forEach(worker => {
+            const gasData = getGasReading(worker.tagId);
+
+            const payload = {
+                tagId: worker.tagId,
+                temperature: parseFloat(gasData.temperature.toFixed(1)),
+                humidity: parseFloat(gasData.humidity.toFixed(1)),
+                pressure: parseFloat(gasData.pressure.toFixed(1)),
+                gas: parseFloat(gasData.gas.toFixed(1))
+            };
+
+            client.publish(`uwb/tag/${worker.tagId}/gas`, JSON.stringify(payload));
+        });
+
+        console.log(`🌡️  Published gas data for ${workers.length} workers`);
+    }, 5000);
 });
 
 client.on('error', (err) => {

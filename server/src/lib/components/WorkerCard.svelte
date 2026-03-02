@@ -5,7 +5,12 @@
         empId: string;
         x: number;
         y: number;
-        gas: number;
+        gasResistance: number;
+        iaq: number;
+        iaqLabel: string;
+        temperature: number | null;
+        humidity: number | null;
+        pressure: number | null;
         status: 'ok' | 'warning' | 'alert';
     };
 
@@ -30,9 +35,31 @@
             <span class="value">({worker.x}, {worker.y})</span>
         </div>
         <div class="detail">
-            <span class="label">Gas Level</span>
-            <span class="value gas-{worker.status}">{worker.gas} ppm</span>
+            <span class="label">Air Quality (IAQ)</span>
+            <span class="value gas-{worker.status}">{worker.iaq > 0 ? worker.iaq : 'N/A'} {worker.iaq > 0 ? `- ${worker.iaqLabel}` : ''}</span>
         </div>
+        <div class="detail">
+            <span class="label">Gas Resistance</span>
+            <span class="value">{worker.gasResistance > 0 ? worker.gasResistance.toFixed(1) + ' kΩ' : 'N/A'}</span>
+        </div>
+        {#if worker.temperature !== null}
+            <div class="detail">
+                <span class="label">Temperature</span>
+                <span class="value">{worker.temperature.toFixed(1)} °C</span>
+            </div>
+        {/if}
+        {#if worker.humidity !== null}
+            <div class="detail">
+                <span class="label">Humidity</span>
+                <span class="value">{worker.humidity.toFixed(1)} %</span>
+            </div>
+        {/if}
+        {#if worker.pressure !== null}
+            <div class="detail">
+                <span class="label">Pressure</span>
+                <span class="value">{worker.pressure.toFixed(1)} hPa</span>
+            </div>
+        {/if}
         <div class="detail">
             <span class="label">Status</span>
             <span class="status-badge {worker.status}">{statusLabels[worker.status]}</span>
@@ -41,8 +68,8 @@
 </div>
 
 <style>
-    .card {
-        background: #ffffff;
+   .card {
+        background: var(--bg-card);
         border-radius: 8px;
         padding: 16px;
         border-left: 4px solid #22c55e;
@@ -98,12 +125,12 @@
 
     .name {
         font-weight: 600;
-        color: #1e293b;
+        color: var(--text-primary);
     }
 
     .emp-id {
         font-size: 12px;
-        color: #64748b;
+        color: var(--text-muted);
     }
 
     .details {
@@ -119,11 +146,11 @@
     }
 
     .label {
-        color: #64748b;
+        color: var(--text-muted);
     }
 
     .value {
-        color: #1e293b;
+        color: var(--text-primary);
         font-weight: 500;
     }
 
